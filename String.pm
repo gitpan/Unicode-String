@@ -12,7 +12,7 @@ require DynaLoader;
 
 @EXPORT_OK = qw(utf16 utf8 utf7 ucs2 ucs4 latin1 uchr uhex byteswap2 byteswap4);
 
-$VERSION = '2.05'; # $Id: String.pm,v 1.26 1999/11/17 13:30:51 gisle Exp $
+$VERSION = '2.06'; # $Id: String.pm,v 1.27 2000/05/19 12:00:45 gisle Exp $
 
 $UTF7_OPTIONAL_DIRECT_CHARS ||= 1;
 
@@ -791,7 +791,7 @@ http://www.unicode.org/
 
 =head1 COPYRIGHT
 
-Copyright 1997-1999 Gisle Aas.
+Copyright 1997-2000 Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
