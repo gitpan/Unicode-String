@@ -12,7 +12,7 @@ require DynaLoader;
 
 @EXPORT_OK = qw(utf16 utf8 utf7 ucs2 ucs4 latin1 uchr uhex byteswap2 byteswap4);
 
-$VERSION = '2.04'; # $Id: String.pm,v 1.24 1999/09/14 11:33:06 gisle Exp $
+$VERSION = '2.05'; # $Id: String.pm,v 1.26 1999/11/17 13:30:51 gisle Exp $
 
 $UTF7_OPTIONAL_DIRECT_CHARS ||= 1;
 
@@ -85,12 +85,12 @@ sub _dump_arg
 sub concat
 {
     #_dump_arg("concat", @_);
-    my($self, $other) = @_;
+    my($self, $other, $reversed) = @_;
     my $class = ref($self);
     unless (UNIVERSAL::isa($other, 'Unicode::String')) {
 	$other = Unicode::String->new($other);
     }
-    my $str = $$self . $$other;
+    my $str = $reversed ? $$other . $$self : $$self . $$other;
     bless \$str, $class;
 }
 
