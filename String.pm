@@ -12,7 +12,7 @@ require DynaLoader;
 
 @EXPORT_OK = qw(utf16 utf8 utf7 ucs2 ucs4 latin1 uchr uhex);
 
-$VERSION = '2.01'; # $Id: String.pm,v 1.20 1998/01/21 11:43:17 aas Exp $
+$VERSION = '2.02'; # $Id: String.pm,v 1.22 1999/05/01 10:16:12 gisle Exp $
 
 $UTF7_OPTIONAL_DIRECT_CHARS ||= 1;
 
@@ -322,9 +322,9 @@ sub ord
     my @ret;
     my @chars;
     if ($array) {
-        @chars = unpack("n*", $$self);
+        @chars = CORE::unpack("n*", $$self);
     } else {
-	@chars = unpack("n2", $$self);
+	@chars = CORE::unpack("n2", $$self);
     }
 
     while (@chars) {
@@ -374,9 +374,9 @@ sub chr
 	$val -= 0x10000;
 	my $h = int($val / 0x400) + 0xD800;
 	my $l = ($val % 0x400) + 0xDC00;
-	$$self = pack("n2", $h, $l);
+	$$self = CORE::pack("n2", $h, $l);
     } else {
-	$$self = pack("n", $val);
+	$$self = CORE::pack("n", $val);
     }
     $self;
 }
@@ -431,7 +431,7 @@ sub rindex
 sub chop
 {
     my $self = shift;
-    if (length $$self) {
+    if (CORE::length $$self) {
 	my $chop = chop($$self);
 	$chop = chop($$self) . $chop;
 	return bless \$chop, ref($self);
