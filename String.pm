@@ -21,7 +21,7 @@ require DynaLoader;
     byteswap2 byteswap4
 );
 
-$VERSION = '2.08'; # $Id: String.pm,v 1.31 2005/10/25 16:45:23 gisle Exp $
+$VERSION = '2.09'; # $Id: String.pm,v 1.35 2005/10/26 08:13:10 gisle Exp $
 
 $UTF7_OPTIONAL_DIRECT_CHARS ||= 1;
 
@@ -520,174 +520,148 @@ Unicode::String - String of Unicode characters (UTF-16BE)
 
 =head1 SYNOPSIS
 
- use Unicode::String qw(utf8 latin1 utf16);
- $u = utf8("The Unicode Standard is a fixed-width, uniform ");
- $u .= utf8("encoding scheme for written characters and text");
+ use Unicode::String qw(utf8 latin1 utf16be);
 
- # convert to various external formats
- print $u->utf32;     # 4 byte characters
- print $u->utf32le;   # 4 byte little endian characters
- print $u->utf16;     # 2 byte characters + surrogates
- print $u->utf16le;   # 2 byte little endian characters
+ $u = utf8("string");
+ $u = latin1("string");
+ $u = utf16be("\0s\0t\0r\0i\0n\0g");
+
+ print $u->utf32be;   # 4 byte characters
+ print $u->utf16le;   # 2 byte characters + surrogates
  print $u->utf8;      # 1-4 byte characters
- print $u->utf7;      # 7-bit clean format
- print $u->latin1;    # lossy
- print $u->hex;       # a hexadecimal string
-
- # all these can be used to set string value or as constructor
- $u->latin1("Å være eller å ikke være");
- $u = utf16("\0Å\0 \0v\0æ\0r\0e");
-
- # string operations
- $u2 = $u->copy;
- $u->append($u2);
- $u->repeat(2);
- $u->chop;
-
- $u->length;
- $u->index($other);
- $u->index($other, $pos);
-
- $u->substr($offset);
- $u->substr($offset, $length);
- $u->substr($offset, $length, $substitute);
-
- # overloading
- $u .= "more";
- $u = $u x 100;
- print "$u\n";
-
- # string <--> array of numbers
- @array = $u->unpack;
- $u->pack(@array);
-
- # misc
- $u->ord;
- $u = uchr($num);
 
 =head1 DESCRIPTION
 
-A I<Unicode::String> object represents a sequence of Unicode
-characters.  The Unicode Standard is a fixed-width, uniform encoding
-scheme for written characters and text.  This encoding treats
-alphabetic characters, ideographic characters, and symbols
-identically, which means that they can be used in any mixture and with
-equal facility.
+A C<Unicode::String> object represents a sequence of Unicode
+characters.  Methods are provided to convert between various external
+formats (encodings) and C<Unicode::String> objects, and methods are
+provided for common string manipulations.
 
-Internally a I<Unicode::String> object is a string of 2 byte values in
-network byte order (big-endian).  The class provide various methods to
-convert from and to various external formats, and all string
-manipulations are made on strings in this the internal 16-bit format.
+The functions utf32be(), utf32le(), utf16be(), utf16le(), utf8(),
+utf7(), latin1(), uhex(), uchr() can be imported from the
+C<Unicode::String> module and will work as constructors initializing
+strings of the corresponding encoding.
 
-The functions utf32(), utf32be(), utf32le(), utf16(), utf16be(),
-utf16le(), utf8(), utf7(), latin1(), uhex(), uchr() can be imported
-from the I<Unicode::String> module and will work as constructors
-initializing strings of the corresponding encoding.
+The C<Unicode::String> objects overload various operators, which means
+that they in most cases can be treated like plain strings.
 
-The I<Unicode::String> objects overload various operators, so they
-will normally work like plain 8-bit strings in Perl.  This includes
-conversions to strings, numbers and booleans as well as assignment,
-concatenation and repetition.
+Internally a C<Unicode::String> object is represented by a string of 2
+byte numbers in network byte order (big-endian). This representation
+is not visible by the API provided, but it might be useful to know in
+order to predict the efficiency of the provided methods.
 
-=head1 METHODS
+=head2 METHODS
 
-The following methods are available:
+=head2 Class methods
+
+The following class methods are available:
 
 =over 4
 
-=item Unicode::String->stringify_as( [$enc] )
+=item Unicode::String->stringify_as
 
-This class method specify which encoding will be used when
-I<Unicode::String> objects are implicitly converted to and from plain
-strings.  It define which encoding to assume for the argument of the
-I<Unicode::String> constructor new().  Without an encoding argument,
-stringify_as() returns the current encoding ctor function.  The
-encoding argument ($enc) is a string with one of the following values:
-"ucs4", "utf32", "utf32be", "utf32le", "ucs2", "utf16", "utf16be",
-"utf16le", "utf8", "utf7", "latin1", "hex".  The default is "utf8".
+=item Unicode::String->stringify_as( $enc )
 
-=item $us = Unicode::String->new( [$initial_value] )
+This method is used to specify which encoding will be used when
+C<Unicode::String> objects are implicitly converted to and from plain
+strings.
 
-This is the customary object constructor.  Without argument, it
-creates an empty I<Unicode::String> object.  If an $initial_value
-argument is given, it is decoded according to the specified
-stringify_as() encoding and used to initialize the newly created
-object.
+If an argument is provided it sets the current encoding.  The argument
+should have one of the following: "ucs4", "utf32", "utf32be",
+"utf32le", "ucs2", "utf16", "utf16be", "utf16le", "utf8", "utf7",
+"latin1" or "hex".  The default is "utf8".
 
-Normally you create I<Unicode::String> objects by importing some of
-the encoding methods below as functions into your namespace and
-calling them with an appropriate encoded argument.
+The stringify_as() method returns a reference to the current encoding
+function.
 
-=item $us->ucs4( [$newval] )
+=item $us = Unicode::String->new
 
-=item $us->utf32( [$newval] )
+=item $us = Unicode::String->new( $initial_value )
 
-=item $us->utf32be( [$newval] )
+This is the object constructor.  Without argument, it creates an empty
+C<Unicode::String> object.  If an $initial_value argument is given, it
+is decoded according to the specified stringify_as() encoding, UTF-8
+by default.
 
-The UCS-4 encoding use 32 bits per character.  The main benefit of this
-encoding is that you don't have to deal with surrogate pairs.  Encoded
-as a Perl string we use 4-bytes in network byte order for each
-character.
+In general it is recommended to import and use one of the encoding
+specific constructor functions instead of invoking this method.
 
-The ucs4() method always return the old value of $us and if given an
-argument decodes the UCS-4 string and set this as the new value of $us.
-The characters in $newval must be in the range 0x0 .. 0x10FFFF.
-Characters outside this range is ignored.
+=back
 
-=item $us->utf32le( [$newval] )
+=head2 Encoding methods
 
-Same as ucs4() method but use the little endian byte order for each
-character.
+These methods get or set the value of the C<Unicode::String> object by
+passing strings in the corresponding encoding.  If a new value is
+passed as argument it will set the value of the C<Unicode::String>,
+and the previous value is returned.  If no argument is passed then the
+current value is returned.
 
-=item $us->ucs2( [$newval] )
+To illustrate the encodings we show how the 2 character sample string
+of "µm" (micro meter) is encoded for each one.
 
-=item $us->utf16( [$newval] )
+=over 4
 
-=item $us->utf16be( [$newval] )
+=item $us->utf32be
 
-The ucs2() and utf16() are really just different names for the same
-method.  The UCS-2 encoding use 16 bits per character.  The UTF-16
-encoding is identical to UCS-2, but includes the use of surrogate
-pairs.  Surrogates make it possible to encode characters in the range
-0x010000 .. 0x10FFFF with the use of two consecutive 16-bit chars.
-Encoded as a Perl string we use 2-bytes in network byte order for each
-character (or surrogate code).
+=item $us->utf32be( $newval )
 
-The ucs2() method always return the old value of $us and if given an
-argument set this as the new value of $us.
+The string passed should be in the UTF-32 encoding with bytes in big
+endian order.  The sample "µm" is "\0\0\0\xB5\0\0\0m" in this encoding.
 
-=item $us->utf16le( [$newval] )
+Alternative names for this method are utf32() and ucs4().
 
-Same as ucs2() method but use the little endian byte order for each
-character.
+=item $us->utf32le
 
-=item $us->utf8( [$newval] )
+=item $us->utf32le( $newval )
 
-The UTF-8 encoding use 8-bit for the encoding of characters in the
-range 0x0 .. 0x7F, 16-bit for the encoding of characters in the range
-0x80 .. 0x7FF, 24-bit for the encoding of characters in the range
-0x800 .. 0xFFFF and 32-bit for characters in the range 0x01000
-.. 0x10FFFF.  Americans like this encoding, because plain US-ASCII
-characters are still US-ASCII.  Another benefit is that the character
-'\0' only occurs as the encoding of 0x0, thus the normal
-NUL-terminated strings (popular in the C programming language) can
-still be used.
+The string passed should be in the UTF-32 encoding with bytes in little
+endian order.  The sample "µm" is is "\xB5\0\0\0m\0\0\0" in this encoding.
 
-The utf8() method always return the old value of $us encoded using
-UTF-8 and if given an argument decodes the UTF-8 string and set this as
-the new value of $us.
+=item $us->utf16be
 
-=item $us->utf7( [$newval] )
+=item $us->utf16be( $newval )
+
+The string passed should be in the UTF-16 encoding with bytes in big
+endian order. The sample "µm" is "\0\xB5\0m" in this encoding.
+
+Alternative names for this method are utf16() and ucs2().
+
+If the string passed to utf16be() starts with the Unicode byte order
+mark in little endian order, the result is as if utf16le() was called
+instead.
+
+=item $us->utf16le
+
+=item $us->utf16le( $newval )
+
+The string passed should be in the UTF-16 encoding with bytes in
+little endian order.  The sample "µm" is is "\xB5\0m\0" in this
+encoding.  This is the encoding used by the Microsoft Windows API.
+
+If the string passed to utf16le() starts with the Unicode byte order
+mark in big endian order, the result is as if utf16le() was called
+instead.
+
+=item $us->utf8
+
+=item $us->utf8( $newval )
+
+The string passed should be in the UTF-8 encoding. The sample "µm" is
+"\xC2\xB5m" in this encoding.
+
+=item $us->utf7
+
+=item $us->utf7( $newval )
+
+The string passed should be in the UTF-7 encoding. The sample "µm" is
+"+ALU-m" in this encoding.
+
 
 The UTF-7 encoding only use plain US-ASCII characters for the
 encoding.  This makes it safe for transport through 8-bit stripping
 protocols.  Characters outside the US-ASCII range are base64-encoded
 and '+' is used as an escape character.  The UTF-7 encoding is
-described in RFC1642.
-
-The utf7() method always return the old value of $us encoded using
-UTF-7 and if given an argument decodes the UTF-7 string and set this as
-the new value of $us.
+described in RFC 1642.
 
 If the (global) variable $Unicode::String::UTF7_OPTIONAL_DIRECT_CHARS
 is TRUE, then a wider range of characters are encoded as themselves.
@@ -695,81 +669,93 @@ It is even TRUE by default.  The characters affected by this are:
 
    ! " # $ % & * ; < = > @ [ ] ^ _ ` { | }
 
-=item $us->latin1( [$newval] )
+=item $us->latin1
 
-The first 256 codes of Unicode is identical to the ISO-8859-1 8-bit
-encoding, also known as Latin-1.  The latin1() method always return
-the old value of $us and if given an argument set this as the new
-value of $us.  Characters outside the 0x0 .. 0xFF range are ignored
-when returning a Latin-1 string.  If you want more control over the
-mapping from Unicode to Latin-1, use the I<Unicode::Map8> class.  This
-is also the way to deal with other 8-bit character sets.
+=item $us->latin1( $newval )
 
-=item $us->hex( [$newval] )
+The string passed should be in the ISO-8859-1 encoding. The sample "µm" is
+"\xB5m" in this encoding.
 
-This method() return a plain ASCII string where each Unicode character
+Characters outside the "\x00" .. "\xFF" range are simply removed from
+the return value of the latin1() method.  If you want more control
+over the mapping from Unicode to ISO-8859-1, use the C<Unicode::Map8>
+class.  This is also the way to deal with other 8-bit character sets.
+
+=item $us->hex
+
+=item $us->hex( $newval )
+
+The string passed should be plain ASCII where each Unicode character
 is represented by the "U+XXXX" string and separated by a single space
-character.  This format can also be used to set the value of $us (in
-which case the "U+" is optional).
+character.  The "U+" prefix is optional when setting the value.  The
+sample "µm" is "U+00b5 U+006d" in this encoding.
 
-=item $us->as_string;
+=back
 
-Converts a I<Unicode::String> to a plain string according to the
-setting of stringify_as().  The default stringify_as() method is
+=head2 String Operations
+
+The following methods are available:
+
+=over 4
+
+=item $us->as_string
+
+Converts a C<Unicode::String> to a plain string according to the
+setting of stringify_as().  The default stringify_as() encoding is
 "utf8".
 
-=item $us->as_num;
+=item $us->as_num
 
-Converts a I<Unicode::String> to a number.  Currently only the digits
+Converts a C<Unicode::String> to a number.  Currently only the digits
 in the range 0x30 .. 0x39 are recognized.  The plan is to eventually
 support all Unicode digit characters.
 
-=item $us->as_bool;
+=item $us->as_bool
 
-Converts a I<Unicode::String> to a boolean value.  Only the empty
+Converts a C<Unicode::String> to a boolean value.  Only the empty
 string is FALSE.  A string consisting of only the character U+0030 is
 considered TRUE, even if Perl consider "0" to be FALSE.
 
-=item $us->repeat( $count );
+=item $us->repeat( $count )
 
-Returns a new I<Unicode::String> where the content of $us is repeated
+Returns a new C<Unicode::String> where the content of $us is repeated
 $count times.  This operation is also overloaded as:
 
   $us x $count
 
-=item $us->concat( $other_string );
+=item $us->concat( $other_string )
 
 Concatenates the string $us and the string $other_string.  If
-$other_string is not an I<Unicode::String> object, then it is first
+$other_string is not an C<Unicode::String> object, then it is first
 passed to the Unicode::String->new constructor function.  This
 operation is also overloaded as:
 
   $us . $other_string
 
 
-=item $us->append( $other_string );
+=item $us->append( $other_string )
 
 Appends the string $other_string to the value of $us.  If
-$other_string is not an I<Unicode::String> object, then it is first
+$other_string is not an C<Unicode::String> object, then it is first
 passed to the Unicode::String->new constructor function.  This
 operation is also overloaded as:
 
   $us .= $other_string
 
-=item $us->copy;
+=item $us->copy
 
-Returns a copy of the current I<Unicode::String> object.  This
+Returns a copy of the current C<Unicode::String> object.  This
 operation is overloaded as the assignment operator.
 
-=item $us->length;
+=item $us->length
 
-Returns the length of the I<Unicode::String>.  Surrogate pairs are
+Returns the length of the C<Unicode::String>.  Surrogate pairs are
 still counted as 2.
 
-=item $us->byteswap;
+=item $us->byteswap
 
 This method will swap the bytes in the internal representation of the
-I<Unicode::String> object.
+C<Unicode::String> object.
 
 Unicode reserve the character U+FEFF character as a byte order mark.
 This works because the swapped character, U+FFFE, is reserved to not
@@ -779,22 +765,22 @@ following code:
 
    $ustr->byteswap if $ustr->ord == 0xFFFE;
 
-=item $us->unpack;
+=item $us->unpack
 
-Returns a list of integers each representing an UTF-16 character code.
+Returns a list of integers each representing an UCS-2 character code.
 
-=item $us->pack( @uchr );
+=item $us->pack( @uchr )
 
-Sets the value of $us as a sequence of UTF-16 characters with the
+Sets the value of $us as a sequence of UCS-2 characters with the
 characters codes given as parameter.
 
-=item $us->ord;
+=item $us->ord
 
 Returns the character code of the first character in $us.  The ord()
 method deals with surrogate pairs, which gives us a result-range of
 0x0 .. 0x10FFFF.  If the $us string is empty, undef is returned.
 
-=item $us->chr( $code );
+=item $us->chr( $code )
 
 Sets the value of $us to be a string containing the character assigned
 code $code.  The argument $code must be an integer in the range 0x0
@@ -807,52 +793,86 @@ In scalar context returns the official Unicode name of the first
 character in $us.  In array context returns the name of all characters
 in $us.  Also see L<Unicode::CharName>.
 
-=item $us->substr( $offset, [$length, [$subst]] )
+=item $us->substr( $offset )
 
-Returns a sub-string of $us.  Works similar to the builtin substr
-function, but because we can't make LVALUE subs yet, you have to pass
-the string you want to assign to the sub-string as the 3rd parameter.
+=item $us->substr( $offset, $length )
 
-=item $us->index( $other, [$pos] );
+=item $us->substr( $offset, $length, $subst )
+
+Returns a sub-string of $us.  Works similar to the builtin substr()
+function.
+
+=item $us->index( $other )
+
+=item $us->index( $other, $pos )
 
 Locates the position of $other within $us, possibly starting the
 search at position $pos.
 
-=item $us->chop;
+=item $us->chop
 
 Chops off the last character of $us and returns it (as a
-I<Unicode::String> object).
+C<Unicode::String> object).
 
 =back
 
 =head1 FUNCTIONS
 
-The following utility functions are provided.  They will be exported
-on request.
+The following functions are provided.  None of these are exported by default.
 
 =over 4
 
-=item byteswap2($str, ...)
+=item byteswap2( $str, ... )
 
 This function will swap 2 and 2 bytes in the strings passed as
-arguments.  This can be used to fix up UTF-16 or UCS-2 strings from
-litle-endian systems.  If this function is called in void context,
-then it will modify its arguments in-place.  Otherwise, then swapped
+arguments.  If this function is called in void context,
+then it will modify its arguments in-place.  Otherwise, the swapped
 strings are returned.
 
-=item byteswap4($str, ...)
+=item byteswap4( $str, ... )
 
 The byteswap4 function works similar to byteswap2, but will reverse
-the order of 4 and 4 bytes.  Can be used to fix litle-endian UCS-4
-strings.
+the order of 4 and 4 bytes.
+
+=item latin1( $str )
+
+=item utf7( $str )
+
+=item utf8( $str )
+
+=item utf16le( $str )
+
+=item utf16be( $str )
+
+=item utf32le( $str )
+
+=item utf32be( $str )
+
+Constructor functions for the various Unicode encodings.  These return
+new C<Unicode::String> objects.  The provided argument should be
+encoded correspondingly.
+
+=item uhex( $str )
+
+Constructs a new C<Unicode::String> object from a string of hex
+values.  See hex() method above for description of the format.
+
+=item uchar( $num )
+
+Constructs a new one character C<Unicode::String> object from a
+Unicode character code.  This works similar to perl's builtin chr()
+function.
 
 =back
 
 =head1 SEE ALSO
 
 L<Unicode::CharName>,
-L<Unicode::Map8>,
-http://www.unicode.org/
+L<Unicode::Map8>
+
+L<http://www.unicode.org/>
+
+L<perlunicode>
 
 =head1 COPYRIGHT
 

@@ -44,7 +44,7 @@ Database. Copyright (c) 1991-2005 Unicode, Inc. All Rights reserved.
 require Exporter;
 @ISA=qw(Exporter);
 @EXPORT_OK = qw(uname ublock);
-$VERSION = sprintf("%d.%02d", q$Revision: 1.5 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.7 $ =~ /(\d+)\.(\d+)/);
 
 use strict;
 use vars qw(%JAMO_SHORT_NAME %NAMES @BLOCKS);
@@ -75,8 +75,6 @@ sub uname {
 		$JAMO_SHORT_NAME{$_} || " U+$_ ";
             } @s;
 	    return join("", "HANGUL SYLLABLE ", @s)
-	} elsif ($code > 0xFFFF) {
-	    return undef;  # outside Unicode range
 	}
     }
     _init_names() unless defined %NAMES;
@@ -315,7 +313,7 @@ sub ublock
 
 sub _init_names
 {
-    keys %NAMES = 6588;  # preextent
+    keys %NAMES = 16351;  # preextent
     local($_);
     while (<DATA>) {
 	chop;
